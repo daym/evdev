@@ -187,9 +187,11 @@ impl RawDevice {
 
         let props = {
             let mut props = AttributeSet::<PropType>::new();
-            unsafe { sys::eviocgprop(fd.as_raw_fd(), props.as_mut_raw_slice())? };
-            props
-        }; // FIXME: handle old kernel
+            unsafe { sys::eviocgprop(file.as_raw_fd(), props.as_mut_raw_slice()) }.or_else(|e| {
+                eprintln!("ignored old kernel (for example 2.6.35); getting EINVAL there {:?}", e);
+                Ok::<i32, std::io::Error>(-1i32)
+            })?;
+        };
 
         let supported_keys = if ty.contains(EventType::KEY) {
             let mut keys = AttributeSet::<KeyCode>::new();
